@@ -754,6 +754,12 @@ func (c *UserConnection) CopyOverTo(other interface{}) (err error) {
 	return
 }
 
+//////////////////////////////////////////////////////
+//
+// REST Methods
+//
+//////////////////////////////////////////////////////
+
 func ratelimitUsers() string {
 	return "u"
 }
@@ -1026,8 +1032,8 @@ func (c *client) GetUser(id snowflake.ID) (builder *getUserBuilder) {
 //  Discord documentation   https://discordapp.com/developers/docs/resources/user#modify-current-user
 //  Reviewed                2019-02-18
 //  Comment                 -
-func (c *client) ModifyCurrentUser() (builder *putUserBuilder) {
-	builder = &putUserBuilder{}
+func (c *client) ModifyCurrentUser() (builder *modifyCurrentUserBuilder) {
+	builder = &modifyCurrentUserBuilder{}
 	builder.r.itemFactory = func() interface{} {
 		return &User{}
 	}
@@ -1077,13 +1083,11 @@ func (c *client) GetUserConnections() (ret []*UserConnection, err error) {
 	return
 }
 
-func prepareUserRESTBuilder(r *RESTBuilder, userID snowflake.ID) {
-	r.cacheRegistry = UserCache
-	r.cacheItemID = userID
-	r.itemFactory = func() interface{} {
-		return &User{}
-	}
-}
+//////////////////////////////////////////////////////
+//
+// REST Builders
+//
+//////////////////////////////////////////////////////
 
 func newUserRESTBuilder(userID Snowflake) *getUserBuilder {
 	builder := &getUserBuilder{}
@@ -1096,6 +1100,7 @@ func newUserRESTBuilder(userID Snowflake) *getUserBuilder {
 	return builder
 }
 
+// getUserBuilder ...
 type getUserBuilder struct {
 	r RESTBuilder
 	c *client
@@ -1114,16 +1119,9 @@ func (b *getUserBuilder) Execute() (user *User, err error) {
 	return user, nil
 }
 
+// modifyCurrentUserBuilder ...
 //generate-rest-params: username:string, avatar:string,
-type putUserBuilder struct {
+//generate-rest-basic-execute: user:*User,
+type modifyCurrentUserBuilder struct {
 	r RESTBuilder
-}
-
-func (b *putUserBuilder) Execute() (user *User, err error) {
-	var v interface{}
-	if v, err = b.r.execute(); err != nil {
-		return nil, err
-	}
-
-	return v.(*User), nil
 }

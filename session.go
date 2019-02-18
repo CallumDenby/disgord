@@ -207,7 +207,7 @@ type InviteRESTer interface {
 type UserRESTer interface {
 	GetCurrentUser() (builder *getUserBuilder)
 	GetUser(id Snowflake) (builder *getUserBuilder)
-	ModifyCurrentUser() (builder *putUserBuilder)
+	ModifyCurrentUser() (builder *modifyCurrentUserBuilder)
 	GetCurrentUserGuilds(params *GetCurrentUserGuildsParams) (ret []*Guild, err error)
 	LeaveGuild(id Snowflake) (err error)
 	GetUserDMs() (ret []*Channel, err error)
