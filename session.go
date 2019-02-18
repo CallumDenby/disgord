@@ -184,7 +184,7 @@ type GuildRESTer interface {
 	GetGuildRoles(guildID Snowflake) (ret []*Role, err error)
 	CreateGuildRole(id Snowflake, params *CreateGuildRoleParams) (ret *Role, err error)
 	ModifyGuildRolePositions(guildID Snowflake, params []ModifyGuildRolePositionsParams) (ret []*Role, err error)
-	ModifyGuildRole(guildID, roleID Snowflake, params *ModifyGuildRoleParams) (ret *Role, err error)
+	ModifyGuildRole(guildID, roleID Snowflake) *modifyGuildRoleBuilder
 	DeleteGuildRole(guildID, roleID Snowflake) (err error)
 	GetGuildPruneCount(id Snowflake, params *GuildPruneParams) (ret *GuildPruneCount, err error)
 	BeginGuildPrune(id Snowflake, params *GuildPruneParams) (ret *GuildPruneCount, err error)
@@ -210,7 +210,7 @@ type InviteRESTer interface {
 type UserRESTer interface {
 	GetCurrentUser() (builder *getUserBuilder)
 	GetUser(id Snowflake) (builder *getUserBuilder)
-	ModifyCurrentUser(params *ModifyCurrentUserParams) (ret *User, err error)
+	ModifyCurrentUser() (builder *putUserBuilder)
 	GetCurrentUserGuilds(params *GetCurrentUserGuildsParams) (ret []*Guild, err error)
 	LeaveGuild(id Snowflake) (err error)
 	GetUserDMs() (ret []*Channel, err error)
