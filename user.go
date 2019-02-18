@@ -864,30 +864,6 @@ func GetCurrentUserGuilds(client httd.Getter, params *GetCurrentUserGuildsParams
 	return
 }
 
-// LeaveGuild [REST] Leave a guild. Returns a 204 empty response on success.
-//  Method                  DELETE
-//  Endpoint                /users/@me/guilds/{guild.id}
-//  Rate limiter            /users TODO: is this correct?
-//  Discord documentation   https://discordapp.com/developers/docs/resources/user#leave-guild
-//  Reviewed                2018-06-10
-//  Comment                 -
-func LeaveGuild(client httd.Deleter, id Snowflake) (err error) {
-	var resp *http.Response
-	resp, _, err = client.Delete(&httd.Request{
-		Ratelimiter: ratelimitUsers(),
-		Endpoint:    endpoint.UserMeGuild(id),
-	})
-	if err != nil {
-		return
-	}
-	if resp.StatusCode != http.StatusNoContent {
-		msg := "unexpected http response code. Got " + resp.Status + ", wants " + http.StatusText(http.StatusNoContent)
-		err = errors.New(msg)
-	}
-
-	return
-}
-
 // GetUserDMs [REST] Returns a list of DM channel objects.
 //  Method                  GET
 //  Endpoint                /users/@me/channels
@@ -1003,6 +979,10 @@ func GetUserConnections(client httd.Getter) (ret []*UserConnection, err error) {
 func (c *client) GetCurrentUser() (builder *getUserBuilder) {
 	builder = c.GetUser(c.myID)
 	builder.r.config.Endpoint = endpoint.UserMe()
+	builder.r.cacheMiddleware = func(resp *http.Response, v interface{}, err error) error {
+		c.myID = v.(*User).ID
+		return nil
+	}
 	return
 }
 
@@ -1053,10 +1033,29 @@ func (c *client) GetCurrentUserGuilds(params *GetCurrentUserGuildsParams) (ret [
 	return
 }
 
-// LeaveGuild .
-func (c *client) LeaveGuild(id Snowflake) (err error) {
-	err = LeaveGuild(c.req, id)
-	return
+// LeaveGuild [REST] Leave a guild. Returns a 204 empty response on success.
+//  Method                  DELETE
+//  Endpoint                /users/@me/guilds/{guild.id}
+//  Rate limiter            /users/@me/guilds TODO: is this correct?
+//  Discord documentation   https://discordapp.com/developers/docs/resources/user#leave-guild
+//  Reviewed                2019-02-18
+//  Comment                 -
+func (c *client) LeaveGuild(id Snowflake) (builder *basicBuilder) {
+	builder = &basicBuilder{}
+	builder.r.setup(c.cache, c.req, &httd.Request{
+		Method:      http.MethodDelete,
+		Ratelimiter: "/users/@me/guilds",
+		Endpoint:    endpoint.UserMeGuild(id),
+	}, func(resp *http.Response, body []byte, err error) error {
+		if resp.StatusCode != http.StatusNoContent {
+			msg := "unexpected http response code. Got " + resp.Status + ", wants " + http.StatusText(http.StatusNoContent)
+			return errors.New(msg)
+		}
+		c.cache.DeleteGuild(id)
+		return nil
+	})
+
+	return builder
 }
 
 // GetUserDMs .
@@ -1089,13 +1088,15 @@ func (c *client) GetUserConnections() (ret []*UserConnection, err error) {
 //
 //////////////////////////////////////////////////////
 
+func userFactory() interface{} {
+	return &User{}
+}
+
 func newUserRESTBuilder(userID Snowflake) *getUserBuilder {
 	builder := &getUserBuilder{}
 	builder.r.cacheRegistry = UserCache
 	builder.r.cacheItemID = userID
-	builder.r.itemFactory = func() interface{} {
-		return &User{}
-	}
+	builder.r.itemFactory = userFactory
 
 	return builder
 }
@@ -1112,11 +1113,7 @@ func (b *getUserBuilder) Execute() (user *User, err error) {
 		return nil, err
 	}
 
-	user = v.(*User)
-	if b.c.myID.Empty() {
-		b.c.myID = user.ID
-	}
-	return user, nil
+	return v.(*User), nil
 }
 
 // modifyCurrentUserBuilder ...

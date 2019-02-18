@@ -209,7 +209,7 @@ type UserRESTer interface {
 	GetUser(id Snowflake) (builder *getUserBuilder)
 	ModifyCurrentUser() (builder *modifyCurrentUserBuilder)
 	GetCurrentUserGuilds(params *GetCurrentUserGuildsParams) (ret []*Guild, err error)
-	LeaveGuild(id Snowflake) (err error)
+	LeaveGuild(id Snowflake) (builder *basicBuilder)
 	GetUserDMs() (ret []*Channel, err error)
 	CreateDM(recipientID Snowflake) (ret *Channel, err error)
 	CreateGroupDM(params *CreateGroupDMParams) (ret *Channel, err error)
